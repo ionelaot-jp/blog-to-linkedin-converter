@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog → LinkedIn Converter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --li-blue: #0A66C2;
+    --li-blue-light: #EBF3FC;
+    --li-blue-dark: #004182;
+    --li-border: rgba(0,0,0,0.12);
+    --li-bg: #F3F2EE;
+    --li-white: #FFFFFF;
+    --li-text: #191919;
+    --li-muted: #666666;
+    --li-success: #057642;
+    --li-danger: #CC1016;
+  }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--li-text);
+    background: var(--li-bg);
+    min-height: 100vh;
+    padding: 1.5rem 1rem 3rem;
+  }
+  .app { max-width: 860px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    background: var(--li-blue);
+    padding: 1.1rem 1.5rem;
+    display: flex; align-items: center; gap: 12px;
+    border-radius: 8px 8px 0 0;
+  }
+  .header svg { width: 26px; height: 26px; fill: white; flex-shrink: 0; }
+  .header-title { color: white; font-size: 15px; font-weight: 600; }
+  .header-subtitle { color: rgba(255,255,255,0.72); font-size: 12px; margin-top: 2px; }
+
+  /* Main */
+  .main {
+    background: var(--li-bg);
+    border: 0.5px solid var(--li-border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 1.5rem;
+  }
+
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 1.5px solid var(--li-border); margin-bottom: 1.5rem; }
+  .tab {
+    padding: 8px 18px; font-size: 14px; font-weight: 500; cursor: pointer;
+    color: var(--li-muted); border-bottom: 2px solid transparent;
+    margin-bottom: -1.5px; transition: all 0.15s;
+  }
+  .tab.active { color: var(--li-blue); border-bottom-color: var(--li-blue); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* Cards */
+  .card {
+    background: var(--li-white);
+    border: 0.5px solid var(--li-border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Two-column layout */
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+  @media (max-width: 640px) {
+    .columns { grid-template-columns: 1fr; }
+  }
+
+  /* Form elements */
+  .label { font-size: 12px; color: var(--li-muted); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+  .textarea {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid #C5C5C5; border-radius: 4px;
+    font-size: 13.5px; font-family: 'IBM Plex Sans', sans-serif;
+    outline: none; color: var(--li-text); background: white;
+    transition: border 0.15s; resize: vertical; line-height: 1.65;
+    min-height: 260px;
+  }
+  .textarea:focus { border-color: var(--li-blue); box-shadow: 0 0 0 2px rgba(10,102,194,0.15); }
+  .textarea::placeholder { color: #AAAAAA; }
+  .textarea:disabled { background: #F5F5F5; color: var(--li-muted); }
+
+  /* Tone pills */
+  .tone-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .tone-btn {
+    padding: 6px 14px; border: 1.5px solid #C5C5C5; border-radius: 100px;
+    font-size: 13px; font-family: 'IBM Plex Sans', sans-serif;
+    cursor: pointer; background: transparent; color: var(--li-muted); transition: all 0.15s;
+  }
+  .tone-btn:hover { border-color: var(--li-blue); color: var(--li-blue); }
+  .tone-btn.active { border-color: var(--li-blue); background: var(--li-blue-light); color: var(--li-blue); font-weight: 500; }
+
+  /* Buttons */
+  .btn-primary {
+    padding: 9px 24px; background: var(--li-blue); color: white; border: none;
+    border-radius: 100px; font-size: 14px; font-weight: 600; cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif; transition: background 0.15s; white-space: nowrap;
+  }
+  .btn-primary:hover { background: var(--li-blue-dark); }
+  .btn-primary:disabled { background: #AAAAAA; cursor: not-allowed; }
+  .btn-outline {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; background: transparent;
+    border: 1px solid var(--li-blue); color: var(--li-blue);
+    border-radius: 100px; font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif; transition: all 0.15s;
+  }
+  .btn-outline:hover { background: var(--li-blue-light); }
+  .btn-outline.success { border-color: var(--li-success); color: var(--li-success); }
+  .btn-outline:disabled { border-color: #AAAAAA; color: #AAAAAA; cursor: not-allowed; }
+  .btn-sm {
+    font-size: 12px; padding: 5px 12px; border-radius: 100px;
+    cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;
+    border: 1px solid; transition: all 0.15s;
+  }
+  .btn-sm-copy { border-color: var(--li-blue); color: var(--li-blue); background: transparent; }
+  .btn-sm-copy:hover { background: var(--li-blue-light); }
+  .btn-sm-copy.success { border-color: var(--li-success); color: var(--li-success); }
+  .btn-sm-delete { border-color: var(--li-danger); color: var(--li-danger); background: transparent; }
+  .btn-sm-delete:hover { background: #FFF0F0; }
+
+  /* Actions row */
+  .actions-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 1rem; gap: 8px; flex-wrap: wrap;
+  }
+  .input-count { font-size: 12px; color: var(--li-muted); }
+
+  /* Result */
+  .result-box {
+    background: #F9F9F9; border: 1px solid var(--li-border); border-radius: 4px;
+    padding: 1rem 1.25rem; font-size: 14px; line-height: 1.75;
+    white-space: pre-wrap; color: var(--li-text);
+    font-family: 'IBM Plex Sans', sans-serif; min-height: 260px;
+  }
+  .result-box.streaming { border-color: var(--li-blue); }
+  .char-count { font-size: 12px; color: var(--li-muted); text-align: right; margin-top: 4px; }
+  .char-count.over { color: var(--li-danger); font-weight: 500; }
+  .result-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+
+  /* Placeholder text inside result box */
+  .result-placeholder { color: #AAAAAA; font-style: italic; }
+
+  /* History */
+  .history-item { border: 0.5px solid var(--li-border); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+  .history-header {
+    padding: 10px 14px; display: flex; align-items: center; gap: 10px;
+    cursor: pointer; background: var(--li-white); transition: background 0.1s;
+  }
+  .history-header:hover { background: #F7F7F7; }
+  .history-meta { flex: 1; min-width: 0; }
+  .history-preview-text { font-size: 13px; color: var(--li-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-date { font-size: 11px; color: var(--li-muted); margin-top: 1px; }
+  .history-badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 100px;
+    background: var(--li-blue-light); color: var(--li-blue); font-weight: 500; white-space: nowrap;
+  }
+  .history-chevron { font-size: 11px; color: var(--li-muted); transition: transform 0.2s; flex-shrink: 0; }
+  .history-chevron.open { transform: rotate(180deg); }
+  .history-body { display: none; padding: 0 14px 12px; background: var(--li-white); }
+  .history-body.open { display: block; }
+  .history-post {
+    font-size: 13px; line-height: 1.7; white-space: pre-wrap; color: var(--li-text);
+    background: #F9F9F9; border: 0.5px solid var(--li-border); border-radius: 4px;
+    padding: 10px 12px; margin-top: 8px;
+  }
+  .history-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+
+  /* Feedback */
+  .error-box {
+    background: #FFF0F0; border: 1px solid #FFCCCC; border-radius: 4px;
+    padding: 10px 14px; font-size: 13px; color: var(--li-danger); margin-top: 0.75rem;
+  }
+  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--li-muted); font-size: 14px; line-height: 1.7; }
+  .loading-state { text-align: center; padding: 1.5rem; color: var(--li-muted); font-size: 13px; }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block; width: 15px; height: 15px;
+    border: 2px solid rgba(255,255,255,0.4); border-top-color: white;
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+    vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Cursor blink */
+  .cursor {
+    display: inline-block; width: 2px; height: 1em;
+    background: var(--li-blue); vertical-align: text-bottom;
+    animation: blink 0.8s step-end infinite; margin-left: 1px;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* History count badge */
+  .tab-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--li-blue-light); color: var(--li-blue);
+    font-size: 11px; font-weight: 600; border-radius: 100px;
+    padding: 1px 6px; margin-left: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    <div>
+      <div class="header-title">Blog → LinkedIn Converter</div>
+      <div class="header-subtitle">Paste your blog article and get a ready-to-publish LinkedIn post</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('converter')">Convert</div>
+      <div class="tab" onclick="switchTab('history')">
+        Shared History <span class="tab-count" id="history-count" style="display:none">0</span>
+      </div>
+    </div>
+
+    <!-- CONVERTER TAB -->
+    <div id="tab-converter" class="tab-pane active">
+
+      <!-- Tone selector -->
+      <div style="margin-bottom:1rem;">
+        <div class="label" style="margin-bottom:8px;">Post tone</div>
+        <div class="tone-row">
+          <button class="tone-btn active" onclick="selectTone(this, 'Professional')">Professional</button>
+          <button class="tone-btn" onclick="selectTone(this, 'Conversational')">Conversational</button>
+          <button class="tone-btn" onclick="selectTone(this, 'Thought leadership')">Thought leadership</button>
+          <button class="tone-btn" onclick="selectTone(this, 'Storytelling')">Storytelling</button>
+        </div>
+      </div>
+
+      <!-- Two-column: input | output -->
+      <div class="columns">
+
+        <!-- LEFT: Blog article input -->
+        <div class="card" style="margin-bottom:0;">
+          <div class="label">Blog article text</div>
+          <textarea
+            class="textarea"
+            id="blog-text"
+            placeholder="Paste your blog article text here..."
+            oninput="updateInputCount()"
+          ></textarea>
+          <div class="actions-row">
+            <span class="input-count" id="input-count">0 characters</span>
+            <button class="btn-primary" id="gen-btn" onclick="generate()">Generate post</button>
+          </div>
+          <div id="error-msg"></div>
+        </div>
+
+        <!-- RIGHT: LinkedIn post output -->
+        <div class="card" style="margin-bottom:0;">
+          <div class="label">LinkedIn post</div>
+          <div class="result-box" id="result-text">
+            <span class="result-placeholder" id="result-placeholder">Your LinkedIn post will appear here...</span>
+          </div>
+          <div class="char-count" id="char-count"></div>
+          <div class="result-actions">
+            <button class="btn-outline" id="copy-main-btn" onclick="copyMain()" disabled>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy post
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div id="tab-history" class="tab-pane">
+      <div id="history-container">
+        <div class="loading-state">Loading history...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let selectedTone = 'Professional';
+  let historyData = [];
+  let isStreaming = false;
+
+  function selectTone(btn, tone) {
+    document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedTone = tone;
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['converter', 'history'][i] === tab));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    if (tab === 'history') loadHistory();
+  }
+
+  function updateInputCount() {
+    const len = document.getElementById('blog-text').value.length;
+    document.getElementById('input-count').textContent = `${len.toLocaleString()} characters`;
+  }
+
+  function updateCharCount(text) {
+    const len = text.length;
+    const charEl = document.getElementById('char-count');
+    charEl.textContent = `${len} / 1300 characters`;
+    charEl.className = 'char-count' + (len > 1300 ? ' over' : '');
+  }
+
+  async function generate() {
+    if (isStreaming) return;
+
+    const text = document.getElementById('blog-text').value.trim();
+    const errorEl = document.getElementById('error-msg');
+    errorEl.innerHTML = '';
+
+    if (!text) {
+      errorEl.innerHTML = '<div class="error-box">Please paste your blog article text first.</div>';
+      return;
+    }
+    if (text.length < 100) {
+      errorEl.innerHTML = '<div class="error-box">The article text is too short. Please paste more content.</div>';
+      return;
+    }
+
+    const btn = document.getElementById('gen-btn');
+    const copyBtn = document.getElementById('copy-main-btn');
+    const resultEl = document.getElementById('result-text');
+    const placeholder = document.getElementById('result-placeholder');
+
+    isStreaming = true;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Generating...';
+    copyBtn.disabled = true;
+
+    // Clear result area and show cursor
+    placeholder && (placeholder.remove());
+    resultEl.innerHTML = '';
+    resultEl.classList.add('streaming');
+    const cursorEl = document.createElement('span');
+    cursorEl.className = 'cursor';
+    resultEl.appendChild(cursorEl);
+    document.getElementById('char-count').textContent = '';
+
+    let fullText = '';
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, tone: selectedTone }),
+      });
+
+      if (!res.ok) {
+        let msg = 'Failed to generate the post.';
+        try { const data = await res.json(); msg = data.error || msg; } catch (_) {}
+        throw new Error(msg);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // keep incomplete line
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const raw = line.slice(6).trim();
+          if (raw === '[DONE]') continue;
+          try {
+            const evt = JSON.parse(raw);
+            if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+              fullText += evt.delta.text;
+              // Render text + cursor
+              resultEl.textContent = fullText;
+              resultEl.appendChild(cursorEl);
+              updateCharCount(fullText);
+            }
+          } catch (_) {}
+        }
+      }
+
+      // Done streaming
+      resultEl.textContent = fullText;
+      resultEl.classList.remove('streaming');
+
+      if (!fullText) throw new Error('No content was generated. Please try again.');
+
+      // Enable copy
+      copyBtn.disabled = false;
+      resetCopyBtn();
+
+      // Save to shared history (non-blocking)
+      try {
+        const preview = text.replace(/\s+/g, ' ').slice(0, 80).trim() + (text.length > 80 ? '...' : '');
+        await fetch('/api/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preview, tone: selectedTone, post: fullText }),
+        });
+        await loadHistoryCount();
+      } catch (_) {}
+
+    } catch (e) {
+      resultEl.textContent = '';
+      resultEl.classList.remove('streaming');
+      errorEl.innerHTML = `<div class="error-box">${e.message}</div>`;
+    }
+
+    isStreaming = false;
+    btn.disabled = false;
+    btn.innerHTML = 'Generate post';
+  }
+
+  function resetCopyBtn() {
+    const btn = document.getElementById('copy-main-btn');
+    btn.className = 'btn-outline';
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy post`;
+  }
+
+  function copyMain() {
+    const text = document.getElementById('result-text').textContent;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-main-btn');
+      btn.className = 'btn-outline success';
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+      setTimeout(resetCopyBtn, 2000);
+    });
+  }
+
+  async function loadHistoryCount() {
+    try {
+      const res = await fetch('/api/history');
+      if (!res.ok) return;
+      const data = await res.json();
+      historyData = data.history || [];
+      const countEl = document.getElementById('history-count');
+      if (historyData.length > 0) {
+        countEl.textContent = historyData.length;
+        countEl.style.display = 'inline-flex';
+      } else {
+        countEl.style.display = 'none';
+      }
+    } catch (_) {}
+  }
+
+  async function loadHistory() {
+    const container = document.getElementById('history-container');
+    container.innerHTML = '<div class="loading-state">Loading shared history...</div>';
+    try {
+      const res = await fetch('/api/history');
+      if (!res.ok) throw new Error('API not available');
+      const data = await res.json();
+      historyData = data.history || [];
+      renderHistory();
+    } catch (e) {
+      container.innerHTML = `<div class="error-box">Could not load history: ${e.message}</div>`;
+    }
+  }
+
+  function renderHistory() {
+    const container = document.getElementById('history-container');
+    if (historyData.length === 0) {
+      container.innerHTML = '<div class="empty-state">The shared history is empty.<br>Generate your first post to see it here.</div>';
+      return;
+    }
+    container.innerHTML = historyData.map((item, idx) => `
+      <div class="history-item">
+        <div class="history-header" onclick="toggleItem(${idx})">
+          <div class="history-meta">
+            <div class="history-preview-text">${escapeHtml(item.preview || '')}</div>
+            <div class="history-date">${item.date}</div>
+          </div>
+          <span class="history-badge">${escapeHtml(item.tone)}</span>
+          <span class="history-chevron" id="chev-${idx}">▼</span>
+        </div>
+        <div class="history-body" id="hbody-${idx}">
+          <div class="history-post">${escapeHtml(item.post)}</div>
+          <div class="history-actions">
+            <button class="btn-sm btn-sm-delete" onclick="deleteEntry(${item.id}, event)">Delete</button>
+            <button class="btn-sm btn-sm-copy" id="hcopy-${item.id}" onclick="copyEntry(${item.id}, this, event)">Copy</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    const countEl = document.getElementById('history-count');
+    if (historyData.length > 0) {
+      countEl.textContent = historyData.length;
+      countEl.style.display = 'inline-flex';
+    }
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function toggleItem(idx) {
+    document.getElementById(`hbody-${idx}`).classList.toggle('open');
+    document.getElementById(`chev-${idx}`).classList.toggle('open');
+  }
+
+  async function deleteEntry(id, e) {
+    e.stopPropagation();
+    try {
+      await fetch('/api/history', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      historyData = historyData.filter(h => h.id !== id);
+      renderHistory();
+    } catch (err) {
+      alert('Could not delete the entry.');
+    }
+  }
+
+  function copyEntry(id, btn, e) {
+    e.stopPropagation();
+    const item = historyData.find(h => h.id === id);
+    if (!item) return;
+    navigator.clipboard.writeText(item.post).then(() => {
+      btn.className = 'btn-sm btn-sm-copy success';
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => {
+        btn.className = 'btn-sm btn-sm-copy';
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  }
+
+  // Init
+  loadHistoryCount();
+</script>
+</body>
+</html>
