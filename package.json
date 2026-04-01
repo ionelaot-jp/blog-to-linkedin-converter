@@ -1,0 +1,14 @@
+{
+    "name": "blog-to-linkedin-converter",
+    "version": "1.0.0",
+    "description": "Convert blog articles into LinkedIn posts",
+    "scripts": {
+          "dev": "vercel dev --listen 3000"
+    },
+    "dependencies": {
+          "@vercel/kv": "^2.0.0"
+    },
+    "devDependencies": {
+          "vercel": "^39.0.0"
+    }
+}
