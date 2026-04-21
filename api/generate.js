@@ -82,6 +82,24 @@ Antes de mostrar el borrador, revisa:
 
 Si algún punto falla, reescribe antes de entregar.`;
 
+function extractText(html) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+    .replace(/<header[\s\S]*?<\/header>/gi, '')
+    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -90,12 +108,33 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { text, tone } = req.body;
-  if (!text || !tone) return res.status(400).json({ error: 'Missing required params: text and tone.' });
-  if (text.length > 50000) return res.status(400).json({ error: 'Article text is too long (max 50,000 characters).' });
+  const { url, tone } = req.body;
+  if (!url || !tone) return res.status(400).json({ error: 'Missing required params: url and tone.' });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'API key not configured on the server.' });
+
+  // Fetch the blog URL and extract text
+  let text;
+  try {
+    const pageRes = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; HoldedBlogConverter/1.0)',
+        'Accept': 'text/html,application/xhtml+xml',
+      },
+    });
+    if (!pageRes.ok) {
+      return res.status(400).json({ error: `Could not fetch the URL (HTTP ${pageRes.status}). Please check the link and try again.` });
+    }
+    const html = await pageRes.text();
+    text = extractText(html);
+    if (text.length < 100) {
+      return res.status(400).json({ error: 'Could not extract enough content from the URL. Make sure it is a public blog article.' });
+    }
+    if (text.length > 50000) text = text.slice(0, 50000);
+  } catch (e) {
+    return res.status(400).json({ error: `Failed to fetch the URL: ${e.message}` });
+  }
 
   try {
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -112,7 +151,7 @@ export default async function handler(req, res) {
         system: SYSTEM_PROMPT,
         messages: [{
           role: 'user',
-          content: `TONE: ${tone}\n\nBLOG ARTICLE TEXT:\n---\n${text}\n---`
+          content: `TONE: ${tone}\n\nBLOG URL: ${url}\n\nBLOG ARTICLE TEXT:\n---\n${text}\n---`
         }],
       }),
     });
